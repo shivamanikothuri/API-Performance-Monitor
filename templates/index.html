@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Performance Monitor</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>🌐 API Performance Monitor</h1>
+
+        <p class="subtitle">
+            Check API availability, response time and status
+        </p>
+
+        <div class="input-section">
+
+            <input
+                type="text"
+                id="api-url"
+                placeholder="Enter API URL (e.g. https://api.github.com)"
+            >
+
+            <button onclick="checkAPI()">
+                Check API
+            </button>
+
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <h2>📊 Monitoring History</h2>
+
+        <button class="history-button" onclick="loadResults()">
+            Refresh History
+        </button>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status Code</th>
+                        <th>Response Time</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+
+                <tbody id="results-table">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+<script>
+
+async function checkAPI() {
+
+    const input = document.getElementById("api-url");
+    const resultBox = document.getElementById("result");
+
+    const url = input.value.trim();
+
+    if (url === "") {
+        resultBox.innerHTML = "⚠️ Please enter an API URL.";
+        return;
+    }
+
+    resultBox.innerHTML = "⏳ Checking API...";
+
+    try {
+
+        const response = await fetch("/check", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                url: url
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+
+            resultBox.innerHTML = "❌ " + data.error;
+            return;
+
+        }
+
+        resultBox.innerHTML = `
+            <strong>API:</strong> ${data.url}<br>
+            <strong>Status Code:</strong> ${data.status_code}<br>
+            <strong>Response Time:</strong> ${data.response_time} ms<br>
+            <strong>Status:</strong> ${data.status}
+        `;
+
+        loadResults();
+
+    } catch (error) {
+
+        resultBox.innerHTML =
+            "❌ Unable to connect to the server.";
+
+    }
+}
+
+
+async function loadResults() {
+
+    try {
+
+        const response = await fetch("/results");
+
+        const results = await response.json();
+
+        const table =
+            document.getElementById("results-table");
+
+        table.innerHTML = "";
+
+        results.forEach(row => {
+
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${row[0]}</td>
+                <td>${row[1]}</td>
+                <td>${row[2]} ms</td>
+                <td>${row[3]}</td>
+                <td>${row[4]}</td>
+            `;
+
+            table.appendChild(tr);
+
+        });
+
+    } catch (error) {
+
+        console.log("Unable to load results.");
+
+    }
+}
+
+</script>
+
+</body>
+</html>
